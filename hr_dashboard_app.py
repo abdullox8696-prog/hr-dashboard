@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import os
+import glob
 
 # Настройка страницы
 st.set_page_config(
@@ -37,9 +38,21 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def find_excel_file():
+    """Автоматический поиск Excel файла в репозитории"""
+    # Ищем любой .xlsx файл
+    xlsx_files = glob.glob("*.xlsx") + glob.glob("*.xls")
+    if xlsx_files:
+        return xlsx_files[0]
+    # Если не нашли, ищем с русским названием
+    for f in os.listdir('.'):
+        if f.endswith('.xlsx') or f.endswith('.xls'):
+            return f
+    return None
+
 @st.cache_data
 def load_data_from_file(file_path):
-    """Загрузка данных из файла в репозитории"""
+    """Загрузка данных из файла"""
     df = pd.read_excel(file_path, sheet_name='Данные', header=0)
     df.columns = ['№', 'Sicil', 'Adi Soyadi', 'Vatandaslik', 'Santiye', '№ Паспорта',
                   'Документ', 'Kamp girisi', 'MK', 'Ogretmen', 'Sinav',
@@ -91,7 +104,7 @@ with st.sidebar:
     st.title("📁 Загрузка данных")
 
     # Автоматическая загрузка из репозитория
-    default_file = 'HR_Дашборд_персо.xlsx'
+    default_file = find_excel_file()
     uploaded_file = st.file_uploader(
         "Или загрузите новый Excel-файл",
         type=['xlsx', 'xls'],
@@ -106,12 +119,12 @@ with st.sidebar:
         if uploaded_file is not None:
             df_raw = load_data_from_upload(uploaded_file)
             st.success("✅ Загружен новый файл")
-        elif os.path.exists(default_file):
+        elif default_file:
             df_raw = load_data_from_file(default_file)
-            st.info("📂 Используются данные из репозитория")
+            st.info(f"📂 Автозагрузка: {default_file}")
         else:
             df_raw = pd.DataFrame()
-            st.warning("⬆️ Файл не найден. Загрузите Excel вручную")
+            st.warning("⬆️ Excel файл не найден в репозитории")
     except Exception as e:
         df_raw = pd.DataFrame()
         st.error(f"Ошибка загрузки: {e}")
@@ -141,7 +154,7 @@ if df_raw.empty:
         <h2 style="color: #89b4fa;">Добро пожаловать!</h2>
         <p style="font-size: 1.2rem; color: #cdd6f4;">
             Данные не найдены. Загрузите Excel-файл через боковую панель слева.<br>
-            Или убедитесь, что файл <code>HR_Дашборд_персо.xlsx</code> есть в репозитории.
+            Или убедитесь, что Excel файл есть в репозитории.
         </p>
     </div>
     """, unsafe_allow_html=True)
